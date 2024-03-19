@@ -1,0 +1,42 @@
+{
+  "name": "@misaka69/dynamic-form",
+  "private": false,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/dynamic-form.umd.cjs",
+  "module": "./dist/dynamic-form.js",
+  "files": [
+    "dist/*"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/dynamic-form.js",
+      "require": "./dist/mdynamic-form.umd.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "@vueuse/core": "10.7.1",
+    "ant-design-vue": "^4.1.2",
+    "axios": "^1.6.7",
+    "lodash": "^4.17.21",
+    "lodash-es": "4.17.21",
+    "sass": "^1.62.1",
+    "vue-types": "5.1.1",
+    "vxe-table": "4.5.17"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.12",
+    "@vitejs/plugin-vue": "^4.1.0",
+    "less": "^4.2.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3",
+    "vite": "^4.3.2",
+    "vue": "^3.4.21"
+  }
+}
