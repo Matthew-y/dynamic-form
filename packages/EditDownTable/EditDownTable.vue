@@ -1,43 +1,42 @@
 <template>
-  <div class="edit-down-table">
-    <vxe-pulldown class="edit-down-pulldown" ref="xDown" transfer>
-      <template #default>
-        <vxe-input
-            type="search"
-            clearable
-            class="edit-down-input"
-            v-model="currentVal"
-            @searchClick='onSearchClick'
-            @keyup="keyupEvent"
-            @click="clickEvent"
-            @suffix-click="suffixClick"
-        />
-      </template>
-      <template #dropdown>
-        <div class="edit-down-wrapper">
-          <vxe-grid ref='grid' v-bind="gridOptions" @cell-click="selectEvent" @page-change="pageChangeEvent">
-              <template #EditDownTable='data'></template>
-              <template #DatePicker='data'></template>
-          </vxe-grid>
-        </div>
-      </template>
-    </vxe-pulldown>
-  </div>
+    <div class="edit-down-table">
+        <vxe-pulldown class="edit-down-pulldown" ref="xDown" transfer>
+            <template #default>
+                <vxe-input type="search" clearable class="edit-down-input" v-model="currentVal"
+                    @searchClick='onSearchClick' @keyup="keyupEvent" @click="clickEvent" @suffix-click="suffixClick" />
+            </template>
+            <template #dropdown>
+                <div class="edit-down-wrapper">
+                    <vxe-grid ref='grid' v-bind="gridOptions" @cell-click="selectEvent" @page-change="pageChangeEvent">
+                        <template #EditDownTable></template>
+                    </vxe-grid>
+                </div>
+            </template>
+        </vxe-pulldown>
+    </div>
 </template>
 <script lang='ts' setup>
-import { defineComponent, PropType, reactive, ref, Ref, watch, defineEmits, onMounted } from 'vue'
-import { VxePulldownInstance, VxeTableEvents, VxeGridProps, VxePagerEvents, VxeGlobalRendererHandles } from 'vxe-table'
-import { getQueryData } from '../mhITable/api.js'
+import {
+    PropType,
+    reactive,
+    ref,
+    Ref,
+    watch,
+    defineEmits,
+    onMounted,
+    inject
+} from 'vue'
+import { VxePulldownInstance, VxeGridProps, VxeGlobalRendererHandles } from 'vxe-table'
+import { getPageList, getTableConfig, getTree } from '../mhITable/api.js'
 
 const emit = defineEmits(['searchClick', 'changeEvent', 'update'])
 const props = defineProps({
     params: Object as PropType<VxeGlobalRendererHandles.RenderEditParams>,
     url: String,
-    tcId: String
+    column: Object
 })
-
 const currentVal = ref<string>('')
-const grid = ref<Ref|null>(null)
+const grid = ref<Ref | null>(null)
 
 const xDown = ref({} as VxePulldownInstance)
 let tempData = reactive<[]>([])
@@ -55,53 +54,46 @@ let gridOptions = reactive({
         currentPage: 1,
         pageSize: 10
     },
-    columns: [
-        { type: 'seq' },
-        { field: 'name', title: 'Name' },
-        { field: 'role', title: 'Role' },
-        { field: 'sex', title: 'Sex' }
-    ],
+    columns: [],
     data: []
 } as VxeGridProps)
 const demo1 = reactive({
     row: null as any,
     column: null as any
 })
-
+const url = inject('baseUrl')
+const fmId = inject('fmId')
 load()
 onMounted(() => {
-    console.log('mount')
 })
 watch(
     currentVal,
     (val) => {
-        console.log(val)
         emit('update', val)
+        getDataList()
     }
 )
 
-function getData(){
-    getQueryData(props.url, { tcId: props.tcId, limit: 10, page: 1 }).then(({ data }) => {
-        console.log(data)
+function getConfig() {
+    let id = props.column.externalModule
+    if (!id) return
+    getTableConfig(url, { fmId: id }).then(({ data }) => {
+        console.log(id)
         formatGridOptions(data)
+        // data.treeConfig = treeConfig
         gridOptions = data
-        gridOptions.data = data.page.list
-        tempData = data.page.list
+        getDataList()
     })
-    /*return new Promise(resolve => {
-        setTimeout(() => {
-            const list = [
-                { name: 'Test1', role: '前端', sex: '男' },
-                { name: 'Test2', role: '后端', sex: '男' },
-                { name: 'Test3', role: '测试', sex: '男' },
-                { name: 'Test4', role: '设计师', sex: '女' },
-                { name: 'Test5', role: '前端', sex: '男' },
-                { name: 'Test6', role: '前端', sex: '男' },
-                { name: 'Test7', role: '前端', sex: '男' }
-            ]
-            resolve(list)
-        }, 100)
-    })*/
+}
+function getDataList() {
+    let id = props.column.externalModule
+    if (!id) return
+    let params = { fmId: id, limit: 10, page: 1 }
+    params[props.column.externalQueryName] = currentVal.value
+    getPageList(url, params).then(({ data }) => {
+        tempData = data.list
+        if (grid.value) grid.value.reloadData(data.list)
+    })
 }
 function load() {
     const { params } = props
@@ -110,15 +102,16 @@ function load() {
         currentVal.value = row[column.field]
         demo1.row = row
         demo1.column = column
-        getData()
+        getConfig()
     }
 }
 function onSearchClick() {
+    xDown.value.hidePanel()
     emit('searchClick')
 }
-function clickEvent() {
-    const $pulldown = xDown.value
-    $pulldown.showPanel()
+async function clickEvent() {
+    await xDown.value.showPanel()
+    grid.value.reloadData(tempData)
 }
 function keyupEvent() {
     const { row, column } = props.params as { row: any, column: any }
@@ -142,12 +135,17 @@ function pageChangeEvent({ currentPage, pageSize }) {
         pagerConfig.currentPage = currentPage
         pagerConfig.pageSize = pageSize
     }
-    getData()
+    getConfig()
 }
-function selectEvent(params: any) {
-    const { row, column } = props.params as { row: any, column: any }
-    currentVal.value = row[column.field]
-    emit('changeEvent', currentVal.value)
+function selectEvent({ row, column }) {
+    console.log(row)
+    let { externalRe, field } = props.column
+    currentVal.value = row[externalRe[field]]
+    let data = new Object({})
+    Object.keys(externalRe).forEach(key => {
+        data[key] = row[externalRe[key]]
+    })
+    emit('changeEvent', data)
     if (column) {
         xDown.value.hidePanel()
     }
@@ -166,15 +164,15 @@ function formatColumns(columnList: []) {
     })
 }
 function convertSlots(slots: object) {
-    if(typeof slots === 'string') {
+    if (typeof slots === 'string') {
         if (!slots) return {};
         let newSlots = JSON.parse(slots);
         Object.keys(newSlots).forEach((key) => {
-            if(typeof newSlots[key] !== 'string'|| !newSlots[key].includes('=>')) return
+            if (typeof newSlots[key] !== 'string' || !newSlots[key].includes('=>')) return
             newSlots[key] = eval(newSlots[key]);
         });
         return newSlots;
-    }else{
+    } else {
         if (!slots) return JSON.stringify({})
         Object.keys(slots).forEach((key) => {
             // if(typeof slots[key] !== 'function') return
@@ -188,13 +186,13 @@ function convertSlots(slots: object) {
     }
 }
 function formatEditRender(render: any) {
-    if(typeof render === 'string') {
+    if (typeof render === 'string') {
         render = JSON.parse(render)
         render.events.change = eval(render.events.change)
-    }else{
-        try{
+    } else {
+        try {
             render.events.change = render.events.change.toString()
-        }catch (e) {
+        } catch (e) {
             console.log(render)
         }
         render = JSON.stringify(render)
@@ -204,13 +202,14 @@ function formatEditRender(render: any) {
 </script>
 <style lang="scss" scoped>
 .edit-down-pulldown {
-  width: 100%;
+    width: 100%;
 }
+
 .edit-down-wrapper {
-  width: 600px;
-  //height: 300px;
-  background-color: #fff;
-  border: 1px solid #dcdfe6;
-  box-shadow: 0 0 6px 2px rgba(0, 0, 0, 0.1);
+    width: 600px;
+    height: 300px;
+    background-color: #fff;
+    border: 1px solid #dcdfe6;
+    box-shadow: 0 0 6px 2px rgba(0, 0, 0, 0.1);
 }
 </style>

@@ -1,50 +1,34 @@
 <template>
     <div class='d-table'>
         <div class='d-table-toolbar'>
-              <span>
+            <span>
                 <Button @click='open' type='primary'>新增数据</Button>
-              </span>
+            </span>
             <span>
                 <vxe-button size='mini' @click='getDataList' icon='vxe-icon-refresh'></vxe-button>
-                <vxe-button size='mini' @click='tableConfVisible = true'
-                            icon='vxe-icon-custom-column'></vxe-button>
+                <vxe-button size='mini' @click='tableConfVisible = true' icon='vxe-icon-custom-column'></vxe-button>
             </span>
         </div>
         <div style='flex-grow: 1'>
-            <vxe-grid
-                v-bind='gridOptions'
-                ref='grid'
-                @resizable-change='handleColumnResize'
-                :style="{ height: props.height + 'px' }"
-            >
+            <vxe-grid v-bind='gridOptions' ref='grid' @resizable-change='handleColumnResize'
+                :style="{ height: props.height + 'px' }">
                 <template #pager>
-                    <vxe-pager
-                        :layouts="[
-                          'Sizes',
-                          'PrevJump',
-                          'PrevPage',
-                          'Number',
-                          'NextPage',
-                          'NextJump',
-                          'FullJump',
-                          'Total',
-                        ]"
-                        :current-page='page.currentPage'
-                        :page-size='page.pageSize'
-                        :total='page.total'
-                        @page-change='handlePageChange'
-                    />
+                    <vxe-pager :layouts="[
+                    'Sizes',
+                    'PrevJump',
+                    'PrevPage',
+                    'Number',
+                    'NextPage',
+                    'NextJump',
+                    'FullJump',
+                    'Total',
+                ]" :current-page='page.currentPage' :page-size='page.pageSize' :total='page.total'
+                        @page-change='handlePageChange' />
                 </template>
                 <template #EditDownTable='data'>
-                    <EditDownTable
-                        :tcId='getColumnId(data.$columnIndex)'
-                        :params='data'
-                        :url='props.baseUrl'
-                        v-model='data.row[data.column.field]'
-                        @update='(value) => data.row[data.column.field] = value'
-                        @searchClick='dataTableVisible = true'
-                        @changeEvent='(value) => changeEvent(data, value)'
-                    />
+                    <EditDownTable :column='getColumnInfo(data.$columnIndex)' :params='data'
+                        v-model='data.row[data.column.field]' @update='(value) => data.row[data.column.field] = value'
+                        @searchClick='dataTableVisible = true' @changeEvent='(value) => changeEvent(data, value)' />
                 </template>
                 <template #DatePicker='{ row, column }'>
                     <DatePicker v-model='row[column.field]' />
@@ -54,28 +38,12 @@
         <!--  表格编辑弹窗  -->
         <Modal title='编辑表格' centered v-model:open='tableConfVisible' :width='800' :footer='null'>
             <div class='t-table-edit'>
-                <vxe-table
-                    ref='configTable'
-                    border
-                    show-overflow
-                    keep-source
-                    :row-config='{ isCurrent: true }'
-                    :edit-config="{ trigger: 'click', mode: 'cell' }"
-                    :mouse-config='{ selected: true }'
-                    :data='gridOptions.columns'
-                    height='400px'
-                    align='center'
-                    size='mini'
-                    style='width: 710px; flex-grow: 1; overflow: auto'
-                    @cell-selected='onCellSelected'
-                >
+                <vxe-table ref='configTable' border show-overflow keep-source :row-config='{ isCurrent: true }'
+                    :edit-config="{ trigger: 'click', mode: 'cell' }" :mouse-config='{ selected: true }'
+                    :data='gridOptions.columns' height='400px' align='center' size='mini'
+                    style='width: 710px; flex-grow: 1; overflow: auto' @cell-selected='onCellSelected'>
                     <vxe-column type='seq' width='30' />
-                    <vxe-column
-                        field='title'
-                        title='列名'
-                        width='160'
-                        :edit-render="{ autofocus: '.vxe-input--inner' }"
-                    >
+                    <vxe-column field='title' title='列名' width='160' :edit-render="{ autofocus: '.vxe-input--inner' }">
                         <template #edit='{ row }'>
                             <vxe-input align='center' v-model='row.title' type='text' />
                         </template>
@@ -85,12 +53,7 @@
                             <span>{{ row.originalTitle }}</span>
                         </template>
                     </vxe-column>
-                    <vxe-column
-                        field='width'
-                        title='宽度'
-                        width='100'
-                        :edit-render="{ autofocus: '.vxe-input--inner' }"
-                    >
+                    <vxe-column field='width' title='宽度' width='100' :edit-render="{ autofocus: '.vxe-input--inner' }">
                         <template #edit='{ row }'>
                             <vxe-input align='center' type='number' v-model='row.width' :min='70' />
                         </template>
@@ -99,12 +62,8 @@
                         <template #default='{ row }'>{{ findLabel(row.align) }}</template>
                         <template #edit='{ row }'>
                             <vxe-select v-model='row.align'>
-                                <vxe-option
-                                    v-for='item in alignOptions'
-                                    :key='item.value'
-                                    :value='item.value'
-                                    :label='item.label'
-                                />
+                                <vxe-option v-for='item in alignOptions' :key='item.value' :value='item.value'
+                                    :label='item.label' />
                             </vxe-select>
                         </template>
                     </vxe-column>
@@ -124,12 +83,8 @@
                             <vxe-checkbox v-model='row.isFixed' />
                         </template>
                     </vxe-column>
-                    <vxe-column
-                        field='remarks'
-                        title='备注'
-                        width='240'
-                        :edit-render="{ autofocus: '.vxe-input--inner' }"
-                    >
+                    <vxe-column field='remarks' title='备注' width='240'
+                        :edit-render="{ autofocus: '.vxe-input--inner' }">
                         <template #edit='{ row }'>
                             <vxe-input align='center' v-model='row.remarks' type='text' />
                         </template>
@@ -144,7 +99,8 @@
             </div>
         </Modal>
         <Modal title='查找' centered v-model:open='dataTableVisible' :width='1000'>
-            <vxe-grid ref='searchGrid' v-bind='gridOptionsPop' @cell-click='selectCell'/>
+            <BasicForm @register="register"/>
+            <vxe-grid ref='searchGrid' v-bind='gridOptionsPop' @cell-click='selectCell' />
         </Modal>
         <Modal title='确认删除？' centered v-model:open='delVisible' @ok='removeDataRow'>
             确认删除此条数据吗？
@@ -164,14 +120,18 @@ import {
     updateColumn,
     updateColumns,
     getQueryData,
-    updateRow
+    updateRow,
+    getTree
 } from './api.js'
-import { handleMsg } from './tool.js'
-import { createTextVNode, createVNode, reactive, ref, watch } from 'vue'
+import { treeConfig, schemas } from "./data";
+import { handleMsg } from '../utils/tool.ts'
+import { createTextVNode, createVNode, reactive, ref, watch, provide } from 'vue'
 import { alignOptions } from './data'
 import { VxeInput, VxeButton } from 'vxe-table'
 import EditDownTable from '../EditDownTable/EditDownTable.vue'
+// import { BasicForm, useForm } from '../Form'
 import { Modal, Button, DatePicker } from 'ant-design-vue'
+import { BasicForm, useForm } from 'vben-components'
 
 const _createVNode = createVNode // 提前注册表格配置插槽渲染虚拟dom所需方法
 const _createTextVNode = createTextVNode // 如上
@@ -200,6 +160,8 @@ const props = defineProps({
         default: () => '/api'
     }
 })
+provide('fmId', props.fmId)
+provide('baseUrl', props.baseUrl)
 // 表格配置项
 let gridOptions = reactive({})
 let gridOptionsPop = reactive({})
@@ -210,6 +172,11 @@ let page = reactive({
     pageSize: 15,
     total: 295,
     totalPage: 30
+})
+const [register, { resetSchema }] = useForm({
+    schemas,
+    labelWidth: 120,
+    actionColOptions: { span: 24 },
 })
 const optionColumn = {
     field: 'operation',
@@ -222,8 +189,8 @@ const optionColumn = {
                     style='user-select: none;color: #0960bd;cursor: pointer;'
                     onClick={() => editRow(row)}
                 >
-      编辑
-      </span>,
+                    编辑
+                </span>,
                 <span
                     style='user-select: none;color: #0960bd;cursor: pointer;margin-left: 10px;'
                     onClick={() => {
@@ -231,8 +198,8 @@ const optionColumn = {
                         delDataId.value = row.id
                     }}
                 >
-      删除
-      </span>
+                    删除
+                </span>
             ]
         }
     }
@@ -260,8 +227,8 @@ function selectCell({ row, column }) {
     dataTableVisible.value = false
 }
 
-function getColumnId(index) {
-    return gridOptions.columns[index].id
+function getColumnInfo(index) {
+    return gridOptions.columns.filter(item => item.showState === 1)[index]
 }
 
 function editRow(row) {
@@ -297,25 +264,34 @@ function getColumnList() {
 // 初始获取表格配置
 function getTableConf() {
     gridOptions.loading = true
+    // 123797979237492394
+    // getTableConfig(props.baseUrl, { fmId: props.fmId })
     getTableConfig(props.baseUrl, { fmId: props.fmId }).then(({ data }) => {
         console.log(data)
         formatGridOptions(data)
+        data.treeConfig = treeConfig
         gridOptions.loading = false
         gridOptions = data
+        /*getTree(props.baseUrl, { fmId: '123797979237492394' }).then(({data}) => {
+            console.log(data)
+            gridOptions.data = data
+            if (grid.value) grid.value.reloadData(data)
+        })*/
         getDataList()
     })
 }
 // 下拉表格change事件
 function changeEvent(data, value) {
-    console.log(value)
-    let { column } = data
+    let { column, row } = data
+    let rowData = Object.assign(row, value)
+    grid.value.reloadRow(row, rowData)
     column.editRender.events.change(data)
     // updateDataRow(data)
 }
 // 更新单行数据
-function updateDataRow(data){
+function updateDataRow(data) {
     updateRow(props.baseUrl, { fmId: props.fmId, data }).then(({ code, message }) => {
-        if(code !== 200) handleMsg({ code, message })
+        if (code !== 200) handleMsg({ code, message })
     })
 }
 // 删除单行数据
@@ -337,6 +313,8 @@ function updateColumnsConf() {
         column.showState = column.visible ? 1 : 2
         column.slots = convertSlots(column.slots)
         column.editRender = formatEditRender(column.editRender)
+        column.externalRe = JSON.stringify(column.externalRe)
+        console.log(column.editRender)
     })
     updateColumns(props.baseUrl, gridOptions.columns).then((res) => {
         handleMsg(res)
@@ -398,9 +376,17 @@ function handleColumnResize(data) {
     let config = {
         ...column,
         width: resizeWidth,
-        slots: convertSlots(column.slots)
+        slots: convertSlots(column.slots),
+        externalRe: JSON.stringify(column.externalRe),
+        editRender: formatEditRender(column.editRender)
     }
-    updateColumn(props.baseUrl, config)
+    updateColumn(props.baseUrl, config).then(() => {
+        getTableConfig(props.baseUrl, { fmId: props.fmId }).then(({ data }) => {
+            let { columns } = data
+            formatColumns(columns)
+            grid.value.reloadColumn(columns)
+        })
+    })
 }
 
 function onCellSelected({ row }) {
@@ -430,15 +416,11 @@ function moveRow(direction) {
 }
 
 function formatEditRender(render) {
-    if(typeof render === 'string') {
+    if (typeof render === 'string') {
         render = JSON.parse(render)
         render.events.change = eval(render.events.change)
-    }else{
-        try{
-            render.events.change = render.events.change.toString()
-        }catch (e) {
-            console.log(render)
-        }
+    } else {
+        render.events.change = render.events.change.toString()
         render = JSON.stringify(render)
     }
     return render
@@ -455,6 +437,7 @@ function formatGridOptions(data) {
 function formatColumns(columnList) {
     columnList.forEach((item) => {
         item.fixed === 'left' ? (item.isFixed = true) : ''
+        if (item.externalRe) item.externalRe = JSON.parse(item.externalRe)
         item.visible = item.showState === 1
         item.slots = convertSlots(item.slots)
         item.editRender = formatEditRender(item.editRender)
@@ -463,15 +446,15 @@ function formatColumns(columnList) {
 
 // 转换插槽配置
 function convertSlots(slots) {
-    if(typeof slots === 'string') {
+    if (typeof slots === 'string') {
         if (!slots) return {};
         let newSlots = JSON.parse(slots);
         Object.keys(newSlots).forEach((key) => {
-            if(typeof newSlots[key] !== 'string'|| !newSlots[key].includes('=>')) return
+            if (typeof newSlots[key] !== 'string' || !newSlots[key].includes('=>')) return
             newSlots[key] = eval(newSlots[key]);
         });
         return newSlots;
-    }else{
+    } else {
         if (!slots) return JSON.stringify({})
         Object.keys(slots).forEach((key) => {
             // if(typeof slots[key] !== 'function') return
@@ -487,7 +470,6 @@ function convertSlots(slots) {
 </script>
 
 <style scoped lang='less'>
-
 .d-table {
     height: 100%;
     margin: 10px;
@@ -500,12 +482,14 @@ function convertSlots(slots) {
         align-items: center;
         justify-content: space-between;
         background-color: #fff;
+
         &>span {
             display: flex;
         }
     }
 
 }
+
 .d-table-action-column {
     width: 100px;
     padding-top: 10px;
@@ -521,6 +505,7 @@ function convertSlots(slots) {
         margin-bottom: 10px;
     }
 }
+
 .t-table-edit {
     display: flex;
 }

@@ -13,6 +13,8 @@ export default defineConfig({
     }
   },
   server: {
+    host: '172.17.1.23',
+    port: 5173,
     proxy: {
       '/request': {
         target: 'http://172.17.1.71:1302',

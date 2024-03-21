@@ -8,7 +8,8 @@ const Api = {
   UPDATE_COLUMNS: '/hpCoreTableColumn/updateBatch',
   DELETE_DATA: '/api/core/fn/modelData/deleteData',
   GET_QUERY_DATA: '/api/core/fn/modelData/getTableColDataSelectTableListData',
-  UPDATE_ROW: '/api/core/fn/modelData/updateData'
+  UPDATE_ROW: '/api/core/fn/modelData/updateData',
+  GET_TREE: '/api/core/fn/modelTreeData/getTreeDataByFmId'
 };
 // 获取表格配置
 const getTableConfig = (baseUrl, params) => {
@@ -54,6 +55,11 @@ const updateRow = (baseUrl, params) => {
   return http.post(baseUrl + Api.UPDATE_ROW, params);
 };
 
+// 更新单行数据
+const getTree = (baseUrl, params) => {
+  return http.post(baseUrl + Api.GET_TREE, params);
+};
+
 export {
   getTableConfig,
   deleteData,
@@ -62,5 +68,6 @@ export {
   updateColumn,
   updateColumns,
   getQueryData,
-  updateRow
+  updateRow,
+  getTree
 };
