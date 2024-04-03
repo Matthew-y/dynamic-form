@@ -9,6 +9,21 @@ function handleMsg({ code, message }) {
     code === 200 ? messageApi.success(message) : messageApi.error(message)
 }
 
+function formatFormFields(fields: any[]) {
+    fields.forEach(field => {
+        isString(field.colProps) ? field.colProps = JSON.parse(field.colProps): ''
+        isString(field.componentProps) ? field.componentProps = JSON.parse(field.componentProps) : ''
+        isString(field.rules) ? field.rules = JSON.parse(field.rules) : ''
+    })
+}
+
+function isString(value: any) {
+    return typeof value === 'string'
+}
+
+function showObjStr(value: Object | Array<object>) {
+    console.log(JSON.stringify(value))
+}
 
 /**
  * Recursively merge two objects.
@@ -61,5 +76,8 @@ export {
     deepMerge,
     handleMsg,
     isArray,
-    isObject
+    isObject,
+    formatFormFields,
+    showObjStr,
+    isString
 }

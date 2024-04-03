@@ -2,12 +2,38 @@
     <div class="edit-down-table">
         <vxe-pulldown class="edit-down-pulldown" ref="xDown" transfer>
             <template #default>
-                <vxe-input type="search" clearable class="edit-down-input" v-model="currentVal"
-                    @searchClick='onSearchClick' @keyup="keyupEvent" @click="clickEvent" @suffix-click="suffixClick" />
+                <vxe-input
+                    type="search"
+                    clearable
+                    class="edit-down-input"
+                    v-model="currentVal"
+                    @searchClick='onSearchClick'
+                    @keyup="keyupEvent"
+                    @click="clickEvent"
+                    @suffix-click="suffixClick"
+                />
             </template>
             <template #dropdown>
                 <div class="edit-down-wrapper">
-                    <vxe-grid ref='grid' v-bind="gridOptions" @cell-click="selectEvent" @page-change="pageChangeEvent">
+                    <vxe-grid ref='grid' v-bind="gridOptions" @cell-click="selectEvent">
+                        <template #pager>
+                            <vxe-pager
+                                :layouts="[
+                                    'Sizes',
+                                    'PrevJump',
+                                    'PrevPage',
+                                    'Number',
+                                    'NextPage',
+                                    'NextJump',
+                                    'FullJump',
+                                    'Total',
+                                ]"
+                                :current-page='page.currentPage'
+                                :page-size='page.pageSize'
+                                :total='page.total'
+                                @page-change='handlePageChange'
+                            />
+                        </template>
                         <template #EditDownTable></template>
                     </vxe-grid>
                 </div>
@@ -24,21 +50,29 @@ import {
     watch,
     defineEmits,
     onMounted,
-    inject
+    inject, computed
 } from 'vue'
-import { VxePulldownInstance, VxeGridProps, VxeGlobalRendererHandles } from 'vxe-table'
-import { getPageList, getTableConfig, getTree } from '../mhITable/api.js'
+import {VxePulldownInstance, VxeGridProps, VxeGlobalRendererHandles} from 'vxe-table'
+import {getPageList, getTableConfig, getTree} from '../utils/api.js'
+import {styleLog} from "../utils/tool";
 
 const emit = defineEmits(['searchClick', 'changeEvent', 'update'])
 const props = defineProps({
     params: Object as PropType<VxeGlobalRendererHandles.RenderEditParams>,
     url: String,
-    column: Object
+    column: Object,
+    currVal: String
 })
 const currentVal = ref<string>('')
 const grid = ref<Ref | null>(null)
 
 const xDown = ref({} as VxePulldownInstance)
+const page = reactive({
+    currentPage: 1,
+    pageSize: 15,
+    total: 0,
+    totalPage: 1
+})
 let tempData = reactive<[]>([])
 
 let gridOptions = reactive({
@@ -47,12 +81,6 @@ let gridOptions = reactive({
     loading: false,
     rowConfig: {
         isHover: true
-    },
-    pagerConfig: {
-        enabled: true,
-        total: 0,
-        currentPage: 1,
-        pageSize: 10
     },
     columns: [],
     data: []
@@ -63,58 +91,91 @@ const demo1 = reactive({
 })
 const url = inject('baseUrl')
 const fmId = inject('fmId')
+let currVal = computed(() => props.currVal)
+
 load()
 onMounted(() => {
 })
 watch(
     currentVal,
-    (val) => {
+    val => {
         emit('update', val)
         getDataList()
     }
 )
+// 查询弹窗选中数据后手动触发组件的输入框值更新
+watch(
+    currVal,
+    val => currentVal.value = val
+)
+watch(
+    page,
+    () => getDataList(),
+    { deep:true }
+)
 
-function getConfig() {
+// 获取表格配置
+async function getConfig() {
     let id = props.column.externalModule
     if (!id) return
-    getTableConfig(url, { fmId: id }).then(({ data }) => {
-        console.log(id)
-        formatGridOptions(data)
-        // data.treeConfig = treeConfig
-        gridOptions = data
-        getDataList()
-    })
+    let { data } = await getTableConfig(url, {fmId: id})
+    formatGridOptions(data)
+    // data.treeConfig = treeConfig
+    gridOptions = data
+    await getDataList()
 }
-function getDataList() {
+
+// 获取表格数据
+async function getDataList() {
     let id = props.column.externalModule
     if (!id) return
-    let params = { fmId: id, limit: 10, page: 1 }
+    let params = {fmId: id, limit: page.pageSize, page: page.currentPage}
     params[props.column.externalQueryName] = currentVal.value
-    getPageList(url, params).then(({ data }) => {
-        tempData = data.list
-        if (grid.value) grid.value.reloadData(data.list)
-    })
+    let { data } = await getPageList(url, params)
+    tempData = data.list
+    setPageConf(data)
+    if (grid.value) grid.value.reloadData(data.list)
 }
+// 修改分页
+function setPageConf({ currentPage, pageSize, total, totalPage }) {
+    page.currentPage = currentPage
+    page.pageSize = pageSize
+    page.total = total
+    page.totalPage = totalPage
+}
+
+// 初始化
 function load() {
-    const { params } = props
+    const {params} = props
     if (params) {
-        const { row, column } = params
+        const {row, column} = params
         currentVal.value = row[column.field]
-        demo1.row = row
-        demo1.column = column
         getConfig()
     }
 }
+// 分页方法
+function handlePageChange({ type, currentPage, pageSize }) {
+    if (type === 'current') {
+        page.currentPage = currentPage
+    } else if (type === 'size') {
+        page.pageSize = pageSize
+    }
+}
+// 搜索按钮点击函数
 function onSearchClick() {
     xDown.value.hidePanel()
     emit('searchClick')
 }
+
+// 点击输入框函数
 async function clickEvent() {
     await xDown.value.showPanel()
     grid.value.reloadData(tempData)
 }
+
+// 输入框输入
 function keyupEvent() {
-    const { row, column } = props.params as { row: any, column: any }
+    const {row, column} = props.params as { row: any, column: any }
     if (column) {
         gridOptions.loading = true
         gridOptions.loading = false
@@ -126,20 +187,24 @@ function keyupEvent() {
         }
     }
 }
+
 function suffixClick() {
     xDown.value.togglePanel()
 }
-function pageChangeEvent({ currentPage, pageSize }) {
-    const { pagerConfig } = gridOptions
+
+// 分页变化函数
+function pageChangeEvent({currentPage, pageSize}) {
+    const {pagerConfig} = gridOptions
     if (pagerConfig) {
         pagerConfig.currentPage = currentPage
         pagerConfig.pageSize = pageSize
     }
     getConfig()
 }
-function selectEvent({ row, column }) {
-    console.log(row)
-    let { externalRe, field } = props.column
+
+// grid选择函数
+function selectEvent({row, column}) {
+    let {externalRe, field} = props.column
     currentVal.value = row[externalRe[field]]
     let data = new Object({})
     Object.keys(externalRe).forEach(key => {
@@ -150,11 +215,14 @@ function selectEvent({ row, column }) {
         xDown.value.hidePanel()
     }
 }
+
 function formatGridOptions(data: any) {
     data.editConfig = JSON.parse(data.editConfig)
+    data.rowConfig = JSON.parse(data.rowConfig)
     data.toolbarConfig = JSON.parse(data.toolbarConfig)
     formatColumns(data.columns)
 }
+
 function formatColumns(columnList: []) {
     columnList.forEach((item: any) => {
         item.fixed === 'left' ? (item.isFixed = true) : ''
@@ -163,6 +231,7 @@ function formatColumns(columnList: []) {
         item.editRender = formatEditRender(item.editRender)
     })
 }
+
 function convertSlots(slots: object) {
     if (typeof slots === 'string') {
         if (!slots) return {};
@@ -185,6 +254,7 @@ function convertSlots(slots: object) {
         return JSON.stringify(slots);
     }
 }
+
 function formatEditRender(render: any) {
     if (typeof render === 'string') {
         render = JSON.parse(render)
@@ -207,7 +277,7 @@ function formatEditRender(render: any) {
 
 .edit-down-wrapper {
     width: 600px;
-    height: 300px;
+    max-height: 300px;
     background-color: #fff;
     border: 1px solid #dcdfe6;
     box-shadow: 0 0 6px 2px rgba(0, 0, 0, 0.1);

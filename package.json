@@ -1,10 +1,10 @@
 {
-  "name": "@misaka69/dynamic-form",
+  "name": "@misaka69/mh-i-table",
   "private": false,
   "version": "0.0.0",
   "type": "module",
-  "main": "./dist/dynamic-form.umd.cjs",
-  "module": "./dist/dynamic-form.js",
+  "main": "./dist/mh-i-table.umd.cjs",
+  "module": "./dist/mh-i-table.js",
   "files": [
     "dist/*"
   ],
@@ -39,11 +39,14 @@
     "vue-i18n": "9.8",
     "vue-router": "^4.3.0",
     "vue-types": "5.1.1",
-    "vxe-table": "4.5.17"
+    "vxe-table": "4.5.17",
+    "vxe-table-plugin-antd": "^4.0.1"
   },
   "devDependencies": {
+    "@babel/preset-react": "^7.24.1",
     "@types/lodash-es": "^4.17.12",
     "@vitejs/plugin-vue": "^4.1.0",
+    "@vue/babel-plugin-jsx": "^1.2.2",
     "less": "^4.2.0",
     "prettier": "^3.2.5",
     "typescript": "^5.3.3",

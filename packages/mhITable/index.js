@@ -1,8 +1,8 @@
-import MhITable from './index.vue'
+import Table from './index.vue'
 
 
-MhITable.install = app => {
-    app.component(MhITable.name, MhITable)
+Table.install = app => {
+    app.component(Table.name, Table)
 }
 
-export default MhITable
+export default Table

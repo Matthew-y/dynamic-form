@@ -1,4 +1,4 @@
-import { FormSchema } from '../Form';
+import { type FormSchema } from 'vben-components';
 
 const colProps = {
     span: 8,
@@ -138,6 +138,18 @@ export const schemas: FormSchema[] = [
     },
 ];
 
+export const basicFormProps = {
+    schemas: [],
+    labelCol: {
+        // style: { marginLeft: '10px' }
+    },
+    labelWidth: 140,
+    // showActionButtonGroup: false,
+    resetButtonOptions: { text: '清空' },
+    submitButtonOptions: { text: '确定' },
+    actionColOptions: { span: 24 },
+}
+
 export const configTableColumns = [
     {
         title: '列名',
@@ -201,14 +213,32 @@ export const treeConfig = {
   parentField: 'pid',
   childrenField: 'children',
   showLine: true,
-  expandAll: false,
+  expandAll: true,
   expandRowKeys: [],
   accordion: false,
   lazy: false,
   trigger: 'row',
-  loadMethod: () => {
-
-  },
   reserve: false,
   showIcon: true,
 }
+export const gridPop = {
+    rowConfig: {
+        isCurrent: true,
+        useKey: true,
+        keyField: 'id',
+        isHover: true
+    },
+    treeConfig,
+    showOverflow: true,
+    loading: false,
+    columns: [
+        { field: 'name', title: '名称', align: 'center', treeNode: true },
+        { field: 'age', title: '年龄', align: 'center', }
+    ],
+    data: [
+        { name: 'matt', age: '23', id: '1211' },
+        { name: 'barry', age: '33', pid: '1211', id: '1937', },
+        { name: 'alex', age: '14', id: '1422', }
+    ]
+}
+

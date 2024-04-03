@@ -1,8 +1,8 @@
-import MhITable from './mhITable/index.js'
+import Table from './mhITable/index.js'
 import EditDownTable from './EditDownTable/index.js'
 import VXETable from 'vxe-table'
 const install = app => {
-    app.use(MhITable)
+    app.use(Table)
     app.use(EditDownTable)
 }
 
@@ -12,7 +12,7 @@ const MhTable = { // 全局引用
 
 
 export { // 按需引入
-    MhITable,
+    Table,
     EditDownTable,
 }
 
