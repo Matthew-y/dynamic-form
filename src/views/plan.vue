@@ -3,6 +3,9 @@
         <div class="search">
             <div class="dfa mb20">
                 <div class="tit">常用方案：</div>
+                <span class="link ml10 pointer" v-for="item in recentPlans" @click="applyPlan(item)">
+                    {{ item.title }}
+                </span>
             </div>
             <div class="mb20 condition">
                 <div class="tit">高级查询：</div>
@@ -16,18 +19,21 @@
                         </Select>
                         <Input v-if="is(component, 'input')" v-model:value="component.value" allowClear style="width: 120px" />
                         <DatePicker v-else-if="is(component, 'datePicker')" v-model:value="component.value" value-format="YYYY-MM-DD" style="width: 300px" />
-                        <span class="pointer del" @click="searchParams.splice(i, 1)">删除</span>
+                        <span class="pointer del" @click="delFilter(i)">删除</span>
                     </div>
                     <div class="add-filter">
-                        <span @click="addFilter" style="margin-right: 10px">+ 添加条件</span>
+                        <span class="link pointer" @click="addFilter" style="margin-right: 10px">
+                            + 添加条件
+                        </span>
                     </div>
                 </div>
             </div>
             <div class="dfa">
                 <div class="tit">方案名称：</div>
-                <Input placeholder="输入方案名称" style="width: 300px" />
-                <Button style="margin-left: 10px" @click="createPlan">保存方案</Button>
-                <Button style="margin-left: 10px" type="primary" @click="confirmSearch">查询</Button>
+                <Input v-model:value="nameOfPlan" placeholder="输入方案名称" style="width: 200px" />
+                <Button class="ml10" @click="createPlan">保存方案</Button>
+                <Button class="ml10" @click="emptySearch">清空查询</Button>
+                <Button class="ml10" type="primary" @click="confirmSearch">查询</Button>
             </div>
         </div>
         <div class="table">
@@ -42,15 +48,16 @@
 <script setup>
 import {reactive, ref, computed, watch} from 'vue'
 import { Select, SelectOption, Input, Button, DatePicker, Modal } from "ant-design-vue";
-import {getAltQueryPlan, getPageList, getTableConfig, createQueryPlan} from "../../packages/utils/api.js";
+import {getAltQueryPlan, getPageList, getTableConfig, createQueryPlan, getQueryPlanDetail} from "../../packages/utils/api.js";
 import {isString} from "../../packages/utils/tool.ts";
 
 const fmId = '1645965546058481666'
 const baseUrl = '/request'
+const nameOfPlan = ref('')
 const grid = ref(null)
 const planModalVisible = ref(true)
 
-let searchParams = reactive([
+let searchParams = ref([
     { key: '', value: '', symbol: '', inputType: 'input' },
 ])
 let symbolList = [
@@ -66,6 +73,7 @@ let symbolList = [
     { label: '多值', value: 'in' },
 ]
 
+let recentPlans = ref([])
 let gridOptions = reactive({ columns: [] })
 let planGridOptions = reactive({
     columns: [
@@ -74,23 +82,13 @@ let planGridOptions = reactive({
     ]
 })
 
-watch(
-    searchParams,
-    (newVal, oldVal) => {
-        if(newVal !== oldVal) return
-        newVal.forEach(item => {
-
-        })
-    }
-)
-
 const columns = computed(() => {
     let visibleColumns = gridOptions.columns.filter(column => column.isQueryScheme)
     return visibleColumns.map(column => ({ label: column.title, value: column.field }))
 })
 const queryParams = computed(() => {
     let params = {}
-    searchParams.forEach(item => {
+    searchParams.value.forEach(item => {
         if(!item.value) return
         params[`${item.key}-#@#-${item.symbol}`] = item.value
     })
@@ -98,7 +96,11 @@ const queryParams = computed(() => {
 })
 
 getTableConf()
-getAltQueryPlan(baseUrl, { fmId }).then(res => console.log(res))
+getRecentPlans()
+
+function getRecentPlans() {
+    getAltQueryPlan(baseUrl, { fmId }).then(({data}) => recentPlans.value = data)
+}
 
 async function getTableConf() {
     gridOptions.loading = true
@@ -120,18 +122,52 @@ async function getDataList() {
 }
 
 async function createPlan() {
-    let params = { fmId, formFields: [] }
-    let { data } = await createQueryPlan(baseUrl, { dto: {} })
+    if(!nameOfPlan.value) return
+    let params = { fmId, formFields: [{ defaultValue: '123', field: 'enterpriseName', fmType: 2, queryType: 'like' }] }
+    let { data } = await createQueryPlan(baseUrl, { dto: params })
+    console.log(data)
 }
 
 function confirmSearch() {
-    let emptyParams = searchParams.filter(item => !Boolean(item.label) || Boolean(item.symbol))
+    let emptyParams = searchParams.value.filter(item => !Boolean(item.key) || !Boolean(item.symbol))
+    console.log(emptyParams)
     if(emptyParams.length > 0) return
     getDataList()
 }
 
 function addFilter() {
-    searchParams.push({ key: '', value: '', symbol: '', inputType: 'input' })
+    searchParams.value.push({ key: '', value: '', symbol: '', inputType: 'input' })
+}
+
+function delFilter(i) {
+    if(searchParams.value.length < 2) return
+    searchParams.value.splice(i, 1)
+}
+
+function emptySearch() {
+    nameOfPlan.value = ''
+    searchParams.value.forEach(item => {
+        item.key = ''
+        item.value = ''
+        item.symbol = ''
+        item.inputType = 'input'
+    })
+}
+
+async function applyPlan({ id, title }) {
+    nameOfPlan.value = title
+    let { data } = await getQueryPlanDetail(baseUrl, { fqfId: id })
+    console.log(data)
+    if(!data) return
+    searchParams.value = []
+    data.forEach(plan => {
+        searchParams.value.push({ key: plan.field, value: plan.defaultValue, symbol: plan.queryType, inputType: getInputType(plan.field) })
+    })
+}
+
+function getInputType(field) {
+    if(field.includes('time')||field.includes('Time')) return 'datePicker'
+    return 'input'
 }
 
 function formatGridOptions(data) {
@@ -217,11 +253,7 @@ function is({ inputType }, type) {
             padding: 5px;
             span {
                 padding: 2px;
-                font-size: 14px;
-                color: #0078b9;
                 border: 1px solid #0078b9;
-                cursor: pointer;
-                user-select: none;
             }
         }
         .del {
@@ -229,6 +261,10 @@ function is({ inputType }, type) {
             margin-left: 10px;
         }
     }
+}
+.link {
+    font-size: 14px;
+    color: #0078b9;
 }
 .dfa {
     display: flex;
@@ -240,5 +276,8 @@ function is({ inputType }, type) {
 .pointer {
     cursor: pointer;
     user-select: none;
+}
+.ml10 {
+    margin-left: 10px;
 }
 </style>
