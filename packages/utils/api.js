@@ -20,7 +20,9 @@ const Api = {
   GET_LAYOUT_INFO: '/api/core/fn/modeResData/getOperateLayout',
   GET_ALT_QUERY_PLAN: '/api/core/fn/hepCoreFmQForm/getTableAlternativeQueryFormList',
   CREATE_QUERY_PLAN: '/api/core/fn/hepCoreFmQForm/createTableAlternativeQueryForm',
-  GET_QUERY_PLAN_DETAIL: '/api/core/fn/hepCoreFmQForm/getTableAlternativeQueryFormById'
+  UPDATE_QUERY_PLAN: '/api/core/fn/hepCoreFmQForm/updateTableAlternativeQueryForm',
+  DEL_QUERY_PLAN: '/api/core/fn/hepCoreFmQForm/deleteTableAlternativeQueryForm',
+  GET_QUERY_PLAN_DETAIL: '/api/core/fn/hepCoreFmQForm/getTableAlternativeQueryFormById',
 };
 // 获取表格配置
 const getTableConfig = (baseUrl, params) => {
@@ -121,6 +123,16 @@ const createQueryPlan = (baseUrl, params) => {
   return http.post(baseUrl + Api.CREATE_QUERY_PLAN, params);
 };
 
+// 修改查询方案
+const updateQueryPlan = (baseUrl, params) => {
+  return http.post(baseUrl + Api.UPDATE_QUERY_PLAN, params);
+};
+
+// 删除查询方案
+const deleteQueryPlan = (baseUrl, params) => {
+  return http.get(baseUrl + Api.DEL_QUERY_PLAN, params);
+};
+
 // 获取查询方案详情
 const getQueryPlanDetail = (baseUrl, params) => {
   return http.get(baseUrl + Api.GET_QUERY_PLAN_DETAIL, params);
@@ -146,5 +158,7 @@ export {
   getMenuTree,
   getAltQueryPlan,
   createQueryPlan,
+  updateQueryPlan,
+  deleteQueryPlan,
   getQueryPlanDetail
 };

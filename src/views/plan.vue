@@ -4,7 +4,7 @@
             <div class="dfa mb20">
                 <div class="tit">常用方案：</div>
                 <span class="link ml10 pointer" v-for="item in recentPlans" @click="applyPlan(item)">
-                    {{ item.title }}
+                    {{ item.title }} <span @click.stop="delQueryPlan(item.id)">x</span>
                 </span>
             </div>
             <div class="mb20 condition">
@@ -31,7 +31,7 @@
             <div class="dfa">
                 <div class="tit">方案名称：</div>
                 <Input v-model:value="nameOfPlan" placeholder="输入方案名称" style="width: 200px" />
-                <Button class="ml10" @click="createPlan">保存方案</Button>
+                <Button class="ml10" @click="savePlan">保存方案</Button>
                 <Button class="ml10" @click="emptySearch">清空查询</Button>
                 <Button class="ml10" type="primary" @click="confirmSearch">查询</Button>
             </div>
@@ -48,14 +48,15 @@
 <script setup>
 import {reactive, ref, computed, watch} from 'vue'
 import { Select, SelectOption, Input, Button, DatePicker, Modal } from "ant-design-vue";
-import {getAltQueryPlan, getPageList, getTableConfig, createQueryPlan, getQueryPlanDetail} from "../../packages/utils/api.js";
+import {getAltQueryPlan, getPageList, getTableConfig, createQueryPlan, updateQueryPlan, deleteQueryPlan, getQueryPlanDetail} from "../../packages/utils/api.js";
 import {isString} from "../../packages/utils/tool.ts";
 
 const fmId = '1645965546058481666'
 const baseUrl = '/request'
 const nameOfPlan = ref('')
+const planId = ref('')
 const grid = ref(null)
-const planModalVisible = ref(true)
+const planModalVisible = ref(false)
 
 let searchParams = ref([
     { key: '', value: '', symbol: '', inputType: 'input' },
@@ -82,10 +83,13 @@ let planGridOptions = reactive({
     ]
 })
 
+// 可用于查询的数据属性
 const columns = computed(() => {
     let visibleColumns = gridOptions.columns.filter(column => column.isQueryScheme)
     return visibleColumns.map(column => ({ label: column.title, value: column.field }))
 })
+
+// 查询参数
 const queryParams = computed(() => {
     let params = {}
     searchParams.value.forEach(item => {
@@ -98,54 +102,75 @@ const queryParams = computed(() => {
 getTableConf()
 getRecentPlans()
 
+// 获取方案
 function getRecentPlans() {
     getAltQueryPlan(baseUrl, { fmId }).then(({data}) => recentPlans.value = data)
 }
 
+// 获取表格配置
 async function getTableConf() {
     gridOptions.loading = true
     let { data } = await getTableConfig(baseUrl, { fmId })
     formatGridOptions(data)
-    console.log(data)
     gridOptions = Object.assign(gridOptions, data)
     await getDataList()
 }
 
+// 获取表格数据
 async function getDataList() {
     if(!gridOptions.loading) gridOptions.loading = true
     let params = Object.assign({ fmId, limit: 10, page: 1 }, queryParams.value)
-    console.log(params)
     let {data} = await getPageList(baseUrl, params)
     gridOptions.loading = false
-    // setPageConf('main', data)
     if (grid.value) grid.value.reloadData(data.list)
 }
 
-async function createPlan() {
+// 保存查询方案
+async function savePlan() {
     if(!nameOfPlan.value) return
-    let params = { fmId, formFields: [{ defaultValue: '123', field: 'enterpriseName', fmType: 2, queryType: 'like' }] }
-    let { data } = await createQueryPlan(baseUrl, { dto: params })
+    let formFields = searchParams.value.map(searchObj => {
+        return {
+            defaultValue: searchObj.value,
+            field: searchObj.key,
+            queryType: searchObj.symbol,
+            fmType: 2
+        }
+    })
+    let params = { fmId, title: nameOfPlan.value, formFields }
+    let data = planId.value ? await updateQueryPlan(baseUrl, { ...params, id: planId.value }) : await createQueryPlan(baseUrl, params)
     console.log(data)
+    getRecentPlans()
 }
 
+// 删除查询方案
+async function delQueryPlan(id) {
+    let { code } = await deleteQueryPlan(baseUrl, { fqfId: id })
+    if(code !== 200) return
+    getRecentPlans()
+}
+
+// 查询
 function confirmSearch() {
     let emptyParams = searchParams.value.filter(item => !Boolean(item.key) || !Boolean(item.symbol))
-    console.log(emptyParams)
     if(emptyParams.length > 0) return
     getDataList()
 }
 
+// 添加查询条件
 function addFilter() {
     searchParams.value.push({ key: '', value: '', symbol: '', inputType: 'input' })
 }
 
+// 删除查询条件
 function delFilter(i) {
     if(searchParams.value.length < 2) return
     searchParams.value.splice(i, 1)
 }
 
+// 清空查询条件
 function emptySearch() {
     nameOfPlan.value = ''
+    planId.value = ''
     searchParams.value.forEach(item => {
         item.key = ''
         item.value = ''
@@ -154,17 +179,19 @@ function emptySearch() {
     })
 }
 
+// 回显查询方案
 async function applyPlan({ id, title }) {
     nameOfPlan.value = title
     let { data } = await getQueryPlanDetail(baseUrl, { fqfId: id })
-    console.log(data)
     if(!data) return
+    planId.value = id
     searchParams.value = []
     data.forEach(plan => {
         searchParams.value.push({ key: plan.field, value: plan.defaultValue, symbol: plan.queryType, inputType: getInputType(plan.field) })
     })
 }
 
+// 获取查询组件类型
 function getInputType(field) {
     if(field.includes('time')||field.includes('Time')) return 'datePicker'
     return 'input'
@@ -223,9 +250,9 @@ function formatEditRender(render) {
 
 function searchKeyChange(i, value) {
     let isTimeKey = value.includes('Time') || value.includes('time')
-    let isTimePicker = searchParams[i].inputType === 'datePicker'
+    let isTimePicker = searchParams.value[i].inputType === 'datePicker'
     if(isTimeKey === isTimePicker) return
-    searchParams[i].inputType = isTimeKey ? 'datePicker' : 'input'
+    searchParams.value[i].inputType = isTimeKey ? 'datePicker' : 'input'
 }
 
 function is({ inputType }, type) {
