@@ -18,7 +18,7 @@
             </span>
         </div>
         <div style='flex-grow: 1'>
-            <vxe-grid v-bind='gridOptions' ref='grid' @edit-closed="({row}) => updateDataRow(row)" @resizable-change='handleColumnResize'
+            <vxe-grid v-bind='gridOptions' ref='grid' keep-source @edit-closed="({row}) => updateDataRow(row)" @resizable-change='handleColumnResize'
                 :style="{ height: props.height }">
                 <template #pager>
                     <vxe-pager
@@ -123,7 +123,7 @@
         <!--  单元格数据查询  -->
         <Modal title='查找' centered v-model:open='dataTableVisible' :width='1000' :footer="null">
             <BasicForm @register="register" />
-            <vxe-grid style="margin-top: 20px" ref='searchGrid' v-bind='gridOptionsPop' @cell-click='selectCell'>
+            <vxe-grid style="margin-top: 20px" ref='searchGrid' v-bind='gridOptionsPop' keep-source @cell-click='selectCell'>
                 <template #pager>
                     <vxe-pager
                         :layouts="[
@@ -188,9 +188,10 @@ import { BasicForm, useForm } from 'vben-components'
 
 VXETable.use(VXETablePluginAntd)
 // 查询弹窗打开时关闭行编辑失焦的自动关闭
-VXETable.interceptor.add('event.clearActived', (/*params, event*/) => {
-    return !dataTableVisible.value
-})
+// VXETable.interceptor.add('event.clearActived', (/*params, event*/) => {
+//     console.log('window state', !dataTableVisible.value)
+//     return !dataTableVisible.value
+// })
 const _createVNode = createVNode // 提前注册表格配置插槽渲染虚拟dom所需方法
 const _createTextVNode = createTextVNode // 如上
 const selectedRowId = ref('')
@@ -260,7 +261,7 @@ const [creationRegister, creationFormMethod] = useForm({
         let res = await createTableData(props.baseUrl, { fmId: props.fmId, data: form })
         handleMsg(res)
         if(res.code !== 200) return
-        getDataList()
+        await getDataList()
         creationFormVisible.value = false
     }
 })
@@ -290,20 +291,10 @@ const optionColumn = {
     width: '100',
     slots: {
         default: ({ row }) => {
+            let style = 'user-select: none;color: #0960bd;cursor: pointer;'
             return [
-                <span
-                    style='user-select: none;color: #0960bd;cursor: pointer;'
-                    onClick={() => editRow(row)}
-                >
-                    编辑
-                </span>,
-                <span
-                    style='user-select: none;color: #0960bd;cursor: pointer;margin-left: 10px;'
-                    onClick={() => {
-                        delVisible.value = true
-                        delDataId.value = row.id
-                    }}
-                >
+                <span style={style} onClick={() => editRow(row)} >编辑</span>,
+                <span style={style+'margin-left: 10px;'} onClick={() => { delVisible.value = true; delDataId.value = row.id }} >
                     删除
                 </span>
             ]
@@ -313,6 +304,8 @@ const optionColumn = {
 // -----------------------------------------------------------------
 initialize()
 showObjStr({ disabled: false, precision: 2 })
+if(props.fmId === '0') editRow({})
+
 // 监听主表分页变化请求数据
 watch(
     pageMain,
@@ -321,6 +314,11 @@ watch(
         getDataList()
     },
     { deep: true }
+)
+// 查询弹框打开时阻止编辑状态自动退出
+watch(
+    () => dataTableVisible.value,
+    (val) => { gridOptions.editConfig.autoClear = !val },
 )
 // 监听查询表分页变化请求数据
 watch(
@@ -393,7 +391,7 @@ function initialize() {
 
 
 // 弹窗表格选择数据
-function selectCell({ row, column }) {
+function selectCell({ row }) {
     let record = grid.value.getEditRecord()
     let data = {}
     gridOptions.columns.forEach(item => {
@@ -423,6 +421,7 @@ function findLabel(option) {
 function openQueryForm(index) {
     let { externalModule } = getColumnInfo(index)
     dataTableVisible.value = true
+    console.log(dataTableVisible.value)
     gridOptionsPop.loading = true
     // 获取弹窗查询表格配置
     getTableConfig(props.baseUrl, { fmId: externalModule }).then(({data}) => {
@@ -483,6 +482,7 @@ async function getTableConf() {
     gridOptions.loading = true
     let { data } = await getTableConfig(props.baseUrl, { fmId: props.fmId })
     formatGridOptions(data)
+    data.editConfig = { autoClear: true }
     gridOptions = Object.assign(gridOptions, data)
     await getDataList()
 }

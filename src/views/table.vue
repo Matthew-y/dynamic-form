@@ -6,7 +6,8 @@
     </div>
 </template>
 <script setup>
-import Table from '../../packages/mhITable/index.vue'
+// import Table from '../../packages/mhITable/index.vue'
+import { Table } from '../../dist/mh-i-table.js'
 import { ref, computed, onMounted } from 'vue'
 
 const fmId = '1645965546058481666'

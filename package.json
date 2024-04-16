@@ -10,8 +10,8 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/dynamic-form.js",
-      "require": "./dist/mdynamic-form.umd.cjs"
+      "import": "./dist/mh-i-table.js",
+      "require": "./dist/mh-i-table.umd.cjs"
     }
   },
   "scripts": {

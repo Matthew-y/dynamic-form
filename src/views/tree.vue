@@ -5,7 +5,8 @@
 </template>
 
 <script setup>
-import Tree from "../../packages/Tree/index.vue";
+import { Tree } from "../../dist/mh-i-table.js";
+
 import {ref} from "vue";
 
 const fmId = '1645965546058481666'

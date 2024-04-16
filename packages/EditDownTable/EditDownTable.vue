@@ -15,7 +15,7 @@
             </template>
             <template #dropdown>
                 <div class="edit-down-wrapper">
-                    <vxe-grid ref='grid' v-bind="gridOptions" @cell-click="selectEvent">
+                    <vxe-grid ref='grid' v-bind="gridOptions" keep-source @cell-click="selectEvent">
                         <template #pager>
                             <vxe-pager
                                 :layouts="[
@@ -41,6 +41,9 @@
         </vxe-pulldown>
     </div>
 </template>
+<script lang="ts">
+export default { name: 'EditDownTable' }
+</script>
 <script lang='ts' setup>
 import {
     PropType,
@@ -54,7 +57,6 @@ import {
 } from 'vue'
 import {VxePulldownInstance, VxeGridProps, VxeGlobalRendererHandles} from 'vxe-table'
 import {getPageList, getTableConfig, getTree} from '../utils/api.js'
-import {styleLog} from "../utils/tool";
 
 const emit = defineEmits(['searchClick', 'changeEvent', 'update'])
 const props = defineProps({
@@ -106,7 +108,7 @@ watch(
 // 查询弹窗选中数据后手动触发组件的输入框值更新
 watch(
     currVal,
-    val => currentVal.value = val
+    val => currentVal.value = val as string
 )
 watch(
     page,
@@ -225,6 +227,7 @@ function formatGridOptions(data: any) {
 
 function formatColumns(columnList: []) {
     columnList.forEach((item: any) => {
+        // item.field = props.column.externalRe[item.field]
         item.fixed === 'left' ? (item.isFixed = true) : ''
         item.visible = item.showState === 1
         item.slots = convertSlots(item.slots)

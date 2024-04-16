@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
-import DynamicForm from '../dist/dynamic-form.js'
+import DynamicForm from '../dist/mh-i-table.js'
 import VXETable from 'vxe-table'
 import router from './router/index.js'
 import 'vxe-table/lib/style.css'

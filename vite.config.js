@@ -9,7 +9,7 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL('./src', import.meta.url)),
       find: 'vue',
-      replacement: '/dist/dynamic-form.umd.cjs'
+      replacement: '/dist/mh-i-table.umd.cjs'
     }
   },
   server: {
